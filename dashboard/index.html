@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Launch Radar</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Token Launch Radar</h1>
+    <p class="sub" id="subtitle">Pre-token protocols, priced by a model fitted on the market's own multiples.</p>
+  </div>
+  <div class="badges" id="badges"></div>
+</header>
+
+<nav class="tabs" aria-label="Views">
+  <button type="button" data-tab="board" class="active">Board</button>
+  <button type="button" data-tab="live">Live tokens</button>
+  <button type="button" data-tab="model">Model</button>
+</nav>
+
+<main>
+  <section id="tab-board" class="panel">
+    <div class="filters">
+      <label>Search <input id="f-search" type="search" placeholder="name or slug" autocomplete="off"></label>
+      <label>Category <select id="f-category"><option value="">All</option></select></label>
+      <label>Chain <select id="f-chain"><option value="">All</option></select></label>
+      <label>Min TVL <select id="f-tvl">
+        <option value="0">Any</option>
+        <option value="50000000">$50M</option>
+        <option value="100000000">$100M</option>
+        <option value="500000000">$500M</option>
+        <option value="1000000000">$1B</option>
+      </select></label>
+      <label>Verdict <select id="f-verdict">
+        <option value="">All</option>
+        <option value="farm">farm</option>
+        <option value="thin">thin</option>
+        <option value="skip">skip</option>
+      </select></label>
+      <label class="check"><input id="f-watchlist" type="checkbox"> Watchlist only</label>
+      <span class="count" id="row-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="board-table">
+        <thead><tr>
+          <th data-sort="rank">#</th>
+          <th data-sort="name">Protocol</th>
+          <th data-sort="category">Category</th>
+          <th data-sort="chains">Chains</th>
+          <th data-sort="tvl_usd">TVL</th>
+          <th data-sort="change_7d">7d</th>
+          <th data-sort="age_days">Age</th>
+          <th data-sort="implied_value_usd">Implied value</th>
+          <th data-sort="launch_odds_pct">Launch odds</th>
+          <th data-sort="farm_verdict">Farm</th>
+        </tr></thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+    <p class="note">Implied value is a fitted estimate, not a price: the token does not exist yet.
+    Click a row for the value breakdown and the farm plan.</p>
+  </section>
+
+  <section id="tab-live" class="panel hidden">
+    <p class="note">Protocols whose token already trades, by market cap. These are the market's
+    own values — they are shown apart from the ranked board and never mixed into it.</p>
+    <div class="table-wrap">
+      <table id="live-table">
+        <thead><tr>
+          <th>#</th><th>Protocol</th><th>Category</th><th>Chains</th><th>TVL</th><th>Market cap</th><th>7d</th>
+        </tr></thead>
+        <tbody id="live-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-model" class="panel hidden">
+    <h2>Model radar-3: ridge-fitted multiples</h2>
+    <p>The model fits ln(market cap / TVL) on the protocols whose token already trades,
+    then prices the pre-token protocols with the same fit. Coefficients below are the
+    fitted ridge regression (penalty λ = <span id="lambda"></span> on the slopes).</p>
+    <table id="coef-table">
+      <thead><tr><th>Term</th><th>Feature</th><th>Coefficient</th><th>What it means</th></tr></thead>
+      <tbody id="coef-body"></tbody>
+    </table>
+    <h3>Validation — on data the fit never saw</h3>
+    <table id="val-table">
+      <thead><tr><th>Check</th><th>Median |log error|</th><th>Mean |log error|</th><th>Spearman</th><th>Rows</th></tr></thead>
+      <tbody id="val-body"></tbody>
+    </table>
+    <h3>Assumptions, stated plainly</h3>
+    <ul id="assumptions">
+      <li>Farm verdicts assume <strong>2% of implied value</strong> reaches active farmers, plus $25 of gas. Farm means the net clears $100,000, thin means it clears $25,000, otherwise skip. Change any of those numbers and the verdicts move.</li>
+      <li><strong>Fee capture is a proxy:</strong> the snapshot carries no revenue or fee figures, so a category flag (Dexs, Lending, Perpetuals, Yield and similar) stands in for fee-bearing business. A fee-charging protocol in a non-flagged category scores lower than it should.</li>
+      <li><strong>Attention is a proxy too:</strong> the snapshot carries no historical watchlist or attention series, so the "peer premium" is the median ln(mcap/TVL) of live-token protocols in the same category — how the market prices that category against TVL.</li>
+      <li>Launch odds are the share of protocols in a category that already have a token, from this snapshot's own record. Categories with fewer than 5 protocols fall back to the global share.</li>
+      <li>Wrapped, staked and bridged products of tokens that already trade are excluded, as are exchanges and version-marked pools. A protocol is only "pre-token" when the snapshot records no market cap, no CoinGecko id and no symbol for it.</li>
+    </ul>
+    <h3>Sandbox — move a coefficient, watch the ranking move</h3>
+    <p>Each slider shifts one fitted coefficient. Implied values recompute live from the
+    per-row features stored in the data and the board re-sorts. Nothing here changes the
+    submitted board; it only shows how much the ranking depends on each term.</p>
+    <div id="sandbox"></div>
+    <p><button type="button" id="sandbox-reset">Reset coefficients</button></p>
+    <ol id="sandbox-top"></ol>
+  </section>
+
+  <aside id="detail" class="detail hidden" aria-label="Protocol detail">
+    <button type="button" id="detail-close" class="close">Close ×</button>
+    <div id="detail-body"></div>
+  </aside>
+</main>
+
+<footer>
+  <p id="footer-note"></p>
+</footer>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

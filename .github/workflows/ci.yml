@@ -1,0 +1,40 @@
+name: token-radar-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Syntax-check the program
+        run: |
+          node --check main.ts
+          node --check lib/model.ts
+
+      - name: Fetch the kit and extract the sealed snapshot
+        run: |
+          curl -fsSL https://make.fun/c/token-radar-01/kit -o /tmp/token-radar-01-kit.tar.gz
+          mkdir -p /tmp/token-radar-01-kit
+          tar -xzf /tmp/token-radar-01-kit.tar.gz -C /tmp/token-radar-01-kit
+          test -f /tmp/token-radar-01-kit/input/snapshot.json
+
+      - name: Run the program
+        run: |
+          mkdir -p out
+          MAKEFUN_OUTPUT_DIR=out node main.ts --input /tmp/token-radar-01-kit/input/snapshot.json
+
+      - name: Verify the board
+        run: |
+          node -e "const b=require('./out/board.json'); if(!Array.isArray(b.rows)||b.rows.length<100) throw new Error('board has '+((b.rows||[]).length)+' rows'); console.log('board rows: '+b.rows.length);"
+          test -f out/dossier.json
