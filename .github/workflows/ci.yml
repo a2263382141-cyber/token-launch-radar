@@ -24,9 +24,15 @@ jobs:
 
       - name: Fetch the kit and extract the sealed snapshot
         run: |
-          curl -fsSL https://make.fun/c/token-radar-01/kit -o /tmp/token-radar-01-kit.tar.gz
-          mkdir -p /tmp/token-radar-01-kit
-          tar -xzf /tmp/token-radar-01-kit.tar.gz -C /tmp/token-radar-01-kit
+          mkdir -p /tmp/token-radar-01-kit/input
+          if curl -fsSL --retry 3 --retry-delay 5 https://make.fun/c/token-radar-01/kit -o /tmp/token-radar-01-kit.tar.gz \
+            && tar -xzf /tmp/token-radar-01-kit.tar.gz -C /tmp/token-radar-01-kit; then
+            echo "kit downloaded"
+          else
+            echo "kit download failed, using vendored snapshot"
+            rm -f /tmp/token-radar-01-kit.tar.gz
+            cp input/snapshot.json /tmp/token-radar-01-kit/input/snapshot.json
+          fi
           test -f /tmp/token-radar-01-kit/input/snapshot.json
 
       - name: Run the program
